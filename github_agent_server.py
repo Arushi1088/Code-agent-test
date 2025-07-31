@@ -1,4 +1,4 @@
-# github_agent_server.py - Simplified GitHub Integration
+# github_agent_server.py - Simplified GitHub Integration v2
 import os
 import re
 from flask import Flask, request, jsonify, send_from_directory
