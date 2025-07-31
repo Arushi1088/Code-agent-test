@@ -18,7 +18,7 @@ def modify_github_file(command):
     """Modify the index.html file on GitHub based on command"""
     try:
         # Get the repository
-        repo = gh.get_repo("arushitandon_microsoft/coder-agent-test")
+        repo = gh.get_repo("Arushi1088/Code-agent-test")
         
         # Get current file content
         file_content = repo.get_contents("index.html")
