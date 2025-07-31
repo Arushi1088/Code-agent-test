@@ -1,7 +1,7 @@
 # github_agent_server.py - Simplified GitHub Integration
 import os
 import re
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from dotenv import load_dotenv
 from github import Github
@@ -104,6 +104,10 @@ def modify_github_file(command):
         
     except Exception as e:
         return f"❌ Error updating GitHub: {str(e)}"
+
+@app.route('/')
+def index():
+    return send_from_directory('.', 'index.html')
 
 @app.route('/agent', methods=['POST'])
 def handle_command():
