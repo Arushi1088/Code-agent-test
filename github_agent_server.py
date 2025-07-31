@@ -109,6 +109,18 @@ def modify_github_file(command):
 def index():
     return send_from_directory('.', 'index.html')
 
+@app.route('/debug')
+def debug_env():
+    """Debug endpoint to check environment variables"""
+    import os
+    return jsonify({
+        "github_token_exists": bool(os.getenv("GITHUB_TOKEN")),
+        "github_token_prefix": os.getenv("GITHUB_TOKEN", "")[:10] + "..." if os.getenv("GITHUB_TOKEN") else "None",
+        "openai_key_exists": bool(os.getenv("OPENAI_API_KEY")),
+        "port": os.getenv("PORT", "Not set"),
+        "all_env_vars": list(os.environ.keys())
+    })
+
 @app.route('/agent', methods=['POST'])
 def handle_command():
     data = request.get_json()
