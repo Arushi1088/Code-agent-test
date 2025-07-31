@@ -6,12 +6,53 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 from langchain_openai import OpenAI
 from langchain.agents import initialize_agent, Tool
+from github import Github
 
 # ─── Setup ─────────────────────────────────────────────────────────────────────
-load_dotenv()  # expects OPENAI_API_KEY in .env
+load_dotenv()  # expects OPENAI_API_KEY & GITHUB_TOKEN
 llm = OpenAI(temperature=0)
+gh = Github(os.getenv("GITHUB_TOKEN"))
 
-# ─── Tools ─────────────────────────────────────────────────────────────────────
+# ─── GitHub file I/O tools ────────────────────────────────────────────────
+def fetch_remote_file(args: dict) -> str:
+    """
+    args = {
+      "owner": "<github-username or org>",
+      "repo":  "<repo-name>",
+      "path":  "<file-path>",
+      "branch": "<branch-name (optional, default main)>"
+    }
+    """
+    repo = gh.get_repo(f"{args['owner']}/{args['repo']}")
+    branch = args.get("branch", "main")
+    contents = repo.get_contents(args["path"], ref=branch)
+    return contents.decoded_content.decode("utf-8")
+
+def update_remote_file(args: dict) -> str:
+    """
+    args = {
+      "owner":         "<github-username or org>",
+      "repo":          "<repo-name>",
+      "path":          "<file-path>",
+      "branch":        "<branch-name (optional)>",
+      "content":       "<new file contents>",
+      "commit_message": "<your commit message>"
+    }
+    """
+    repo = gh.get_repo(f"{args['owner']}/{args['repo']}")
+    branch = args.get("branch", "main")
+    # fetch the current SHA
+    contents = repo.get_contents(args["path"], ref=branch)
+    repo.update_file(
+        path=args["path"],
+        message=args["commit_message"],
+        content=args["content"],
+        sha=contents.sha,
+        branch=branch
+    )
+    return f"✅ Committed `{args['path']}` on `{args['owner']}/{args['repo']}`"
+
+# ─── Local tools (read/write/run_tests) as before ──────────────────────────
 def read_file(path: str) -> str:
     with open(path, 'r', encoding='utf-8') as f:
         return f.read()
@@ -19,28 +60,37 @@ def read_file(path: str) -> str:
 def write_file(args: dict) -> str:
     with open(args['path'], 'w', encoding='utf-8') as f:
         f.write(args['content'])
-    return f"Wrote {len(args['content'])} characters to {args['path']}"
+    return f"Wrote {len(args['content'])} chars to {args['path']}"
 
 def run_tests(_: str) -> str:
-    # adjust this to your project's test command
     proc = subprocess.run(["npm", "test"], capture_output=True, text=True)
     return proc.stdout + proc.stderr
 
 tools = [
     Tool(
+        name="fetch_remote_file",
+        func=fetch_remote_file,
+        description="Fetches a file from GitHub. Pass a dict with keys: owner, repo, path, branch (optional)."
+    ),
+    Tool(
+        name="update_remote_file", 
+        func=update_remote_file,
+        description="Commits a file to GitHub. Pass a dict with keys: owner, repo, path, branch, content, commit_message."
+    ),
+    Tool(
         name="read_file",
-        func=lambda path: read_file(path),
-        description="Reads a text file and returns its contents."
+        func=read_file,
+        description="Reads a local file. Pass the file path as a string."
     ),
     Tool(
         name="write_file",
-        func=lambda args: write_file(args),
-        description="Writes content to a file. Expects a dict with 'path' and 'content'."
+        func=write_file,
+        description="Writes to a local file. Pass a dict with keys: path, content."
     ),
     Tool(
         name="run_tests",
-        func=lambda _: run_tests(_),
-        description="Runs the project's test suite and returns the output."
+        func=run_tests,
+        description="Runs npm test locally. Pass any string (ignored)."
     )
 ]
 
@@ -60,20 +110,32 @@ def handle_command():
     data = request.get_json()
     cmd = data.get("command", "").strip()
     if not cmd:
-        return jsonify({"error": "No command provided"}), 400
+        return jsonify({"error": "Please provide a command"}), 400
 
-    # Build a little script for the agent to follow:
-    # 1. load the HTML
-    # 2. apply the user's instruction
-    # 3. write the file back out (or run tests)
+    # Build the sequential prompt
+    # 1. Fetch the target file from GitHub
+    # 2. Instruct the agent to apply the user's command
+    # 3. Commit it back to GitHub
+    # 4. Also save locally
     prompt = f"""
-    read_file index.html
+    fetch_remote_file {{ "owner": "arushitandon_microsoft",
+                         "repo":  "coder-agent-test",
+                         "path":  "index.html",
+                         "branch":"main" }}
     {cmd}
-    write_file
+    update_remote_file {{ "owner": "arushitandon_microsoft",
+                          "repo":  "coder-agent-test", 
+                          "path":  "index.html",
+                          "branch": "main",
+                          "commit_message": "Agent update: {cmd}" }}
+    write_file {{ "path": "index.html" }}
     """
-    # If they asked for tests, the agent will call run_tests()
-    result = agent.run(prompt)
-    return jsonify({"result": result})
+    
+    try:
+        result = agent.run(prompt)
+        return jsonify({"result": result})
+    except Exception as e:
+        return jsonify({"error": f"Agent error: {str(e)}"}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001)
