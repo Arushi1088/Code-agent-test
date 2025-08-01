@@ -18,10 +18,11 @@ CORS(app, origins=["*"])
 def modify_github_file(command):
     """Modify the index.html file on GitHub based on command"""
     try:
-        # Debug: Print environment info
+        # Debug: Print environment info - v2.1
         token = os.getenv("GITHUB_TOKEN")
         print(f"GITHUB_TOKEN exists: {bool(token)}")
         print(f"GITHUB_TOKEN prefix: {token[:10] + '...' if token else 'None'}")
+        print(f"Fresh client initialization fix active")
         
         # Create fresh GitHub client with current token
         gh = Github(token)
