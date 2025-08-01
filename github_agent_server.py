@@ -17,12 +17,20 @@ CORS(app, origins=["*"])
 def modify_github_file(command):
     """Modify the index.html file on GitHub based on command"""
     try:
+        # Debug: Print environment info
+        token = os.getenv("GITHUB_TOKEN")
+        print(f"GITHUB_TOKEN exists: {bool(token)}")
+        print(f"GITHUB_TOKEN prefix: {token[:10] + '...' if token else 'None'}")
+        
         # Get the repository
+        print("Attempting to access repo: Arushi1088/Code-agent-test")
         repo = gh.get_repo("Arushi1088/Code-agent-test")
         
         # Get current file content
+        print("Attempting to get index.html contents")
         file_content = repo.get_contents("index.html")
         current_content = file_content.decoded_content.decode('utf-8')
+        print(f"Successfully retrieved file, size: {len(current_content)} bytes")
         
         # Apply modifications based on command
         updated_content = current_content
@@ -103,6 +111,8 @@ def modify_github_file(command):
             return f"✅ Processed command: {command}. Try: 'make it blue', 'make it larger', 'hello world'"
         
     except Exception as e:
+        print(f"ERROR in modify_github_file: {str(e)}")
+        print(f"Exception type: {type(e).__name__}")
         return f"❌ Error updating GitHub: {str(e)}"
 
 @app.route('/')
