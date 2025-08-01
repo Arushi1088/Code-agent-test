@@ -260,6 +260,35 @@ def handle_command():
     if not cmd:
         return jsonify({"error": "Please provide a command"}), 400
     
+    # Look for "Task <id>: <instruction>" or "Bug <id>: <instruction>"
+    import re
+    m = re.match(r'^(?:Task|Bug)\s+(\d+):\s*(.+)$', cmd, flags=re.IGNORECASE)
+    if m:
+        work_id = int(m.group(1))
+        instruction = m.group(2)
+        
+        # Execute the 4-step workflow
+        results = []
+        
+        # Step 1: Fetch ADO work item
+        results.append(f"🔍 Fetching work item {work_id}...")
+        ado_result = fetch_ado_bug(work_id)
+        results.append(ado_result)
+        
+        # Step 2: Execute the GitHub instruction
+        results.append(f"🔧 Executing: {instruction}")
+        github_result = modify_github_file(instruction)
+        results.append(github_result)
+        
+        # Step 3: Update ADO work item to Done
+        results.append(f"✅ Marking work item {work_id} as Done...")
+        update_result = update_ado_bug(work_id, f"Fixed by agent: {instruction}", "Done")
+        results.append(update_result)
+        
+        # Return combined results
+        combined_result = "\n".join(results)
+        return jsonify({"result": combined_result})
+    
     cmd_lower = cmd.lower()
     
     # Azure DevOps commands - simplified routing
