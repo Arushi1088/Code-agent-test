@@ -8,7 +8,8 @@ from github import Github
 
 # Load environment variables
 load_dotenv()
-gh = Github(os.getenv("GITHUB_TOKEN"))
+# Don't initialize GitHub client here - do it in the function to get fresh token
+# gh = Github(os.getenv("GITHUB_TOKEN"))
 
 # Flask app
 app = Flask(__name__)
@@ -21,6 +22,9 @@ def modify_github_file(command):
         token = os.getenv("GITHUB_TOKEN")
         print(f"GITHUB_TOKEN exists: {bool(token)}")
         print(f"GITHUB_TOKEN prefix: {token[:10] + '...' if token else 'None'}")
+        
+        # Create fresh GitHub client with current token
+        gh = Github(token)
         
         # Get the repository
         print("Attempting to access repo: Arushi1088/Code-agent-test")
