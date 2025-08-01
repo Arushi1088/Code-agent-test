@@ -262,9 +262,36 @@ def handle_command():
     
     cmd_lower = cmd.lower()
     
-    # Azure DevOps commands
-    if "create task" in cmd_lower or "add task" in cmd_lower:
-        # Extract task title from command
+    # Azure DevOps commands - simplified routing
+    if cmd_lower.startswith("fetch bug") or cmd_lower.startswith("fetch task") or cmd_lower.startswith("fetch work item"):
+        # e.g. "fetch bug 123"
+        import re
+        numbers = re.findall(r'\d+', cmd)
+        if numbers:
+            work_item_id = int(numbers[0])
+            result = fetch_ado_bug(work_item_id)
+        else:
+            result = "❌ Please specify a work item ID (e.g., 'fetch bug 123')"
+        return jsonify({"result": result})
+    
+    elif cmd_lower.startswith("update bug") or cmd_lower.startswith("update task") or cmd_lower.startswith("update work item"):
+        # e.g. "update bug 123 done"
+        import re
+        numbers = re.findall(r'\d+', cmd)
+        if numbers:
+            work_item_id = int(numbers[0])
+            if "done" in cmd_lower or "complete" in cmd_lower:
+                result = update_ado_bug(work_item_id, "Updated by agent - marked as complete", "Done")
+            elif "close" in cmd_lower:
+                result = update_ado_bug(work_item_id, "Updated by agent - closed", "Closed")
+            else:
+                result = update_ado_bug(work_item_id, f"Updated by agent: {cmd}")
+        else:
+            result = "❌ Please specify a work item ID (e.g., 'update bug 123 done')"
+        return jsonify({"result": result})
+    
+    elif cmd_lower.startswith("create task") or cmd_lower.startswith("add task"):
+        # e.g. "create task Fix login issue"
         if "create task" in cmd_lower:
             title = cmd[cmd_lower.find("create task") + 12:].strip()
         else:
@@ -276,8 +303,8 @@ def handle_command():
         result = create_ado_work_item(title, work_item_type="Task")
         return jsonify({"result": result})
     
-    elif "create bug" in cmd_lower or "add bug" in cmd_lower:
-        # Extract bug title from command
+    elif cmd_lower.startswith("create bug") or cmd_lower.startswith("add bug"):
+        # e.g. "create bug Button not working"
         if "create bug" in cmd_lower:
             title = cmd[cmd_lower.find("create bug") + 11:].strip()
         else:
@@ -289,35 +316,8 @@ def handle_command():
         result = create_ado_work_item(title, work_item_type="Bug")
         return jsonify({"result": result})
     
-    elif "fetch" in cmd_lower and ("bug" in cmd_lower or "work item" in cmd_lower or "task" in cmd_lower):
-        # Extract work item ID - look for numbers in the command
-        import re
-        numbers = re.findall(r'\d+', cmd)
-        if numbers:
-            work_item_id = int(numbers[0])
-            result = fetch_ado_bug(work_item_id)
-            return jsonify({"result": result})
-        else:
-            return jsonify({"result": "❌ Please specify a work item ID (e.g., 'fetch bug 123')"})
-    
-    elif "update" in cmd_lower and ("bug" in cmd_lower or "work item" in cmd_lower or "task" in cmd_lower):
-        # Extract work item ID and handle update
-        import re
-        numbers = re.findall(r'\d+', cmd)
-        if numbers:
-            work_item_id = int(numbers[0])
-            # Simple update - mark as Done with a comment
-            if "done" in cmd_lower or "complete" in cmd_lower:
-                result = update_ado_bug(work_item_id, "Updated by agent - marked as complete", "Done")
-            elif "close" in cmd_lower:
-                result = update_ado_bug(work_item_id, "Updated by agent - closed", "Closed")
-            else:
-                result = update_ado_bug(work_item_id, f"Updated by agent: {cmd}")
-            return jsonify({"result": result})
-        else:
-            return jsonify({"result": "❌ Please specify a work item ID (e.g., 'update bug 123 done')"})
-    
-    elif "list tasks" in cmd_lower or "show tasks" in cmd_lower or "list work items" in cmd_lower:
+    elif cmd_lower.startswith("list") and ("tasks" in cmd_lower or "work items" in cmd_lower):
+        # e.g. "list tasks" or "list work items"
         result = list_ado_work_items()
         return jsonify({"result": result})
     
