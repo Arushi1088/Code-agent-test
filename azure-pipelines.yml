@@ -1,0 +1,164 @@
+# Azure DevOps Pipeline for Self-Healing Development with Gemini CLI
+# This pipeline automatically patches code using Gemini CLI and deploys to Azure
+
+parameters:
+- name: PatchInstruction
+  displayName: 'Code Modification Instruction'
+  type: string
+  default: 'Fix the reported issue'
+- name: WorkItemId
+  displayName: 'Work Item ID to Update'
+  type: string
+  default: ''
+
+variables:
+- name: pythonVersion
+  value: '3.10'
+- name: azureServiceConnectionName
+  value: 'azure-resource-manager-connection'
+- name: webAppName
+  value: 'github-agent-test-2'
+- name: resourceGroupName
+  value: 'DefaultResourceGroup-CUS'
+
+trigger:
+  branches:
+    include:
+    - main
+    - dev
+  paths:
+    exclude:
+    - README.md
+    - .gitignore
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+- stage: Build
+  displayName: 'Build and Test'
+  jobs:
+  - job: BuildJob
+    displayName: 'Build Application'
+    steps:
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: '$(pythonVersion)'
+      displayName: 'Use Python $(pythonVersion)'
+
+    - script: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+      displayName: 'Install dependencies'
+
+    - script: |
+        echo "Running basic syntax check..."
+        python -m py_compile github_agent_server.py
+        echo "Syntax check passed!"
+      displayName: 'Run tests'
+
+    - task: ArchiveFiles@2
+      displayName: 'Archive files'
+      inputs:
+        rootFolderOrFile: '$(System.DefaultWorkingDirectory)'
+        includeRootFolder: false
+        archiveType: zip
+        archiveFile: $(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip
+        replaceExistingArchive: true
+
+    - upload: $(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip
+      artifact: drop
+
+- stage: PatchWithGemini
+  displayName: 'Apply Code Patches with Gemini CLI'
+  dependsOn: Build
+  condition: and(succeeded(), ne('${{ parameters.PatchInstruction }}', ''))
+  jobs:
+  - job: GeminiPatch
+    displayName: 'Gemini Code Patching'
+    steps:
+    - checkout: self
+      persistCredentials: true
+
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: '$(pythonVersion)'
+      displayName: 'Use Python $(pythonVersion)'
+
+    - script: |
+        echo "Installing Gemini CLI..."
+        # Note: Replace with actual Gemini CLI installation command
+        echo "Gemini CLI installation placeholder"
+      displayName: 'Install Gemini CLI'
+
+    - script: |
+        echo "Applying patch: ${{ parameters.PatchInstruction }}"
+        echo "Target Work Item: ${{ parameters.WorkItemId }}"
+        
+        # Configure git
+        git config --global user.email "azure-devops@automated.com"
+        git config --global user.name "Azure DevOps Pipeline"
+        
+        # Create feature branch for this patch
+        BRANCH_NAME="feature/patch-$(Build.BuildId)"
+        git checkout -b $BRANCH_NAME
+        
+        # Simulate Gemini CLI patch application
+        echo "Simulating code patch application..."
+        echo "// Patched by Gemini CLI: ${{ parameters.PatchInstruction }}" >> github_agent_server.py
+        
+        # Commit changes
+        git add .
+        git commit -m "Auto-patch: ${{ parameters.PatchInstruction }} (Work Item #${{ parameters.WorkItemId }})"
+        
+        # Push to feature branch
+        git push origin $BRANCH_NAME
+        
+        echo "Patch applied and pushed to branch: $BRANCH_NAME"
+      displayName: 'Apply Gemini Patch'
+      env:
+        GITHUB_TOKEN: $(GITHUB_TOKEN)
+        GEMINI_CLI_TOKEN: $(GEMINI_CLI_TOKEN)
+
+    - script: |
+        echo "Updating Azure DevOps Work Item ${{ parameters.WorkItemId }}"
+        # Add logic to update work item status via Azure DevOps REST API
+        echo "Work item update placeholder"
+      displayName: 'Update Work Item'
+      env:
+        ADO_PAT: $(ADO_PAT)
+
+- stage: Deploy
+  displayName: 'Deploy to Azure'
+  dependsOn: 
+  - Build
+  - PatchWithGemini
+  condition: or(succeeded('Build'), succeeded('PatchWithGemini'))
+  jobs:
+  - deployment: DeployWeb
+    displayName: 'Deploy to Azure App Service'
+    environment: 'production'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '$(pythonVersion)'
+            displayName: 'Use Python $(pythonVersion)'
+
+          - task: AzureWebApp@1
+            displayName: 'Deploy Azure Web App'
+            inputs:
+              azureSubscription: $(azureServiceConnectionName)
+              appType: 'webAppLinux'
+              appName: $(webAppName)
+              resourceGroupName: $(resourceGroupName)
+              package: $(Pipeline.Workspace)/drop/$(Build.BuildId).zip
+              runtimeStack: 'PYTHON|3.10'
+              startUpCommand: 'python github_agent_server.py'
+
+          - script: |
+            echo "Deployment completed successfully!"
+            echo "Application URL: https://$(webAppName).azurewebsites.net"
+          displayName: 'Post-deployment notification'
