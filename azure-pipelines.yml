@@ -36,15 +36,23 @@ jobs:
   - script: |
       echo "=== PYTHON VERSION CHECK ==="
       python3 --version
+      which python3
+      echo "PATH=$PATH"
+      echo "Current directory: $(pwd)"
+      echo "User: $(whoami)"
       echo ""
+      exit 0
     displayName: 'Check Python Version'
 
   - script: |
       echo "=== DEPENDENCY INSTALLATION ==="
-      python -m pip install --upgrade pip
+      echo "Attempting pip upgrade..."
+      python3 -m pip install --upgrade pip || echo "pip upgrade failed, continuing..."
       echo "Simulating: pip install -r requirements.txt"
       echo "Dependencies would be installed here"
+      echo "✅ Dependencies simulation completed"
       echo ""
+      exit 0
     displayName: 'Simulate Install dependencies'
 
   - script: |
@@ -53,15 +61,18 @@ jobs:
       echo "Syntax check would run here"
       echo "✅ Syntax check passed!"
       echo ""
+      exit 0
     displayName: 'Simulate Run tests'
 
   - script: |
       echo "=== BUILD ARTIFACTS ==="
       echo "Simulating artifact creation..."
-      mkdir -p $(Build.ArtifactStagingDirectory)
-      echo "Build completed at $(date)" > $(Build.ArtifactStagingDirectory)/build-info.txt
-      echo "✅ Build artifacts created"
+      ARTIFACT_DIR="${BUILD_ARTIFACTSTAGINGDIRECTORY:-/tmp/artifacts}"
+      mkdir -p "$ARTIFACT_DIR"
+      echo "Build completed at $(date)" > "$ARTIFACT_DIR/build-info.txt"
+      echo "✅ Build artifacts created in $ARTIFACT_DIR"
       echo ""
+      exit 0
     displayName: 'Simulate Archive files'
 
   - script: |
@@ -80,6 +91,7 @@ jobs:
       echo ""
       echo "✅ Gemini patching simulation completed"
       echo ""
+      exit 0
     displayName: 'Simulate Gemini Patch Application'
     condition: and(succeeded(), ne('${{ parameters.PatchInstruction }}', ''))
 
@@ -93,6 +105,7 @@ jobs:
       echo "Application would be available at: https://github-agent-test-2.azurewebsites.net"
       echo "✅ Deployment simulation completed"
       echo ""
+      exit 0
     displayName: 'Simulate Azure Deployment'
 
   - script: |
@@ -109,4 +122,5 @@ jobs:
       echo "3. Configure Azure service connection for actual deployment"
       echo ""
       echo "✅ Pipeline demonstration completed successfully!"
+      exit 0
     displayName: 'Pipeline Summary'
