@@ -77,22 +77,23 @@ jobs:
 
   - script: |
       echo "=== GEMINI CLI PATCHING SIMULATION ==="
-      echo "Patch Instruction: Test Patch"
-      echo "Target Work Item: Test Work Item"
+      echo "Patch Instruction: ${{ parameters.PatchInstruction }}"
+      echo "Target Work Item: ${{ parameters.WorkItemId }}"
       echo ""
       echo "Would perform the following actions:"
       echo "1. Install Gemini CLI"
       echo "2. Configure git credentials"
-      echo "3. Create feature branch: feature/patch-$(date +%Y%m%d-%H%M%S)"
-      echo "4. Apply patch: Test patch instruction"
+      echo "3. Create feature branch: feature/patch-$(Build.BuildId)"
+      echo "4. Apply patch: ${{ parameters.PatchInstruction }}"
       echo "5. Commit changes"
       echo "6. Push to GitHub repository"
-      echo "7. Update Azure DevOps Work Item"
+      echo "7. Update Azure DevOps Work Item #${{ parameters.WorkItemId }}"
       echo ""
       echo "✅ Gemini patching simulation completed"
       echo ""
       exit 0
     displayName: 'Simulate Gemini Patch Application'
+    condition: and(succeeded(), ne('${{ parameters.PatchInstruction }}', ''))
 
   - script: |
       echo "=== DEPLOYMENT SIMULATION ==="
@@ -111,8 +112,8 @@ jobs:
       echo "=== PIPELINE SUMMARY ==="
       echo "🚀 Self-Healing Development Pipeline Completed"
       echo "📦 Build: Successful"
-      echo "🔧 Gemini Patching: Test Patch"
-      echo "📋 Work Item: Test Work Item"
+      echo "🔧 Gemini Patching: ${{ parameters.PatchInstruction }}"
+      echo "📋 Work Item: ${{ parameters.WorkItemId }}"
       echo "☁️  Deployment: Simulated"
       echo ""
       echo "To enable full functionality:"
