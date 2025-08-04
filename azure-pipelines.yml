@@ -147,18 +147,17 @@ stages:
         versionSpec: '$(pythonVersion)'
       displayName: 'Use Python $(pythonVersion)'
 
-    - task: AzureWebApp@1
-      displayName: 'Deploy Azure Web App'
-      inputs:
-        azureSubscription: $(azureServiceConnectionName)
-        appType: 'webAppLinux'
-        appName: $(webAppName)
-        resourceGroupName: $(resourceGroupName)
-        package: $(Pipeline.Workspace)/drop/$(Build.BuildId).zip
-        runtimeStack: 'PYTHON|3.10'
-        startUpCommand: 'python github_agent_server.py'
-
     - script: |
-        echo "Deployment completed successfully!"
-        echo "Application URL: https://$(webAppName).azurewebsites.net"
-      displayName: 'Post-deployment notification'
+        echo "=== DEPLOYMENT SIMULATION ==="
+        echo "Would deploy to Azure App Service: $(webAppName)"
+        echo "Resource Group: $(resourceGroupName)"
+        echo "Package: $(Pipeline.Workspace)/drop/$(Build.BuildId).zip"
+        echo "Runtime: PYTHON|3.10"
+        echo "Start Command: python github_agent_server.py"
+        echo ""
+        echo "Note: Azure service connection not configured yet"
+        echo "To enable actual deployment, create service connection: $(azureServiceConnectionName)"
+        echo ""
+        echo "Deployment simulation completed successfully!"
+        echo "Application would be available at: https://$(webAppName).azurewebsites.net"
+      displayName: 'Simulate Azure Deployment'
