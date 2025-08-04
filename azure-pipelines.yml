@@ -25,9 +25,9 @@ trigger:
     - README.md
     - .gitignore
 
-# Use Microsoft-hosted agents
+# Use Self-hosted agents (no parallelism limitations)
 pool:
-  vmImage: 'ubuntu-latest'
+  name: SelfHosted
 
 jobs:
 - job: BuildAndTest
