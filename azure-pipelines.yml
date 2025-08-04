@@ -159,6 +159,6 @@ stages:
               startUpCommand: 'python github_agent_server.py'
 
           - script: |
-            echo "Deployment completed successfully!"
-            echo "Application URL: https://$(webAppName).azurewebsites.net"
-          displayName: 'Post-deployment notification'
+              echo "Deployment completed successfully!"
+              echo "Application URL: https://$(webAppName).azurewebsites.net"
+            displayName: 'Post-deployment notification'
