@@ -135,30 +135,30 @@ stages:
   - PatchWithGemini
   condition: or(succeeded('Build'), succeeded('PatchWithGemini'))
   jobs:
-  - deployment: DeployWeb
+  - job: DeployWeb
     displayName: 'Deploy to Azure App Service'
-    environment: 'production'
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - task: UsePythonVersion@0
-            inputs:
-              versionSpec: '$(pythonVersion)'
-            displayName: 'Use Python $(pythonVersion)'
+    steps:
+    - download: current
+      artifact: drop
+      displayName: 'Download build artifacts'
 
-          - task: AzureWebApp@1
-            displayName: 'Deploy Azure Web App'
-            inputs:
-              azureSubscription: $(azureServiceConnectionName)
-              appType: 'webAppLinux'
-              appName: $(webAppName)
-              resourceGroupName: $(resourceGroupName)
-              package: $(Pipeline.Workspace)/drop/$(Build.BuildId).zip
-              runtimeStack: 'PYTHON|3.10'
-              startUpCommand: 'python github_agent_server.py'
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: '$(pythonVersion)'
+      displayName: 'Use Python $(pythonVersion)'
 
-          - script: |
-              echo "Deployment completed successfully!"
-              echo "Application URL: https://$(webAppName).azurewebsites.net"
-            displayName: 'Post-deployment notification'
+    - task: AzureWebApp@1
+      displayName: 'Deploy Azure Web App'
+      inputs:
+        azureSubscription: $(azureServiceConnectionName)
+        appType: 'webAppLinux'
+        appName: $(webAppName)
+        resourceGroupName: $(resourceGroupName)
+        package: $(Pipeline.Workspace)/drop/$(Build.BuildId).zip
+        runtimeStack: 'PYTHON|3.10'
+        startUpCommand: 'python github_agent_server.py'
+
+    - script: |
+        echo "Deployment completed successfully!"
+        echo "Application URL: https://$(webAppName).azurewebsites.net"
+      displayName: 'Post-deployment notification'
