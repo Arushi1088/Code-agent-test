@@ -151,34 +151,30 @@ jobs:
       # You'll need to add these as pipeline variables
       GITHUB_TOKEN: $(GITHUB_TOKEN)  # GitHub Personal Access Token
 
-  - task: AzureCLI@2
-    inputs:
-      azureSubscription: 'DefaultAzureCredential'  # Update with your service connection name
-      scriptType: bash
-      scriptLocation: inlineScript
-      inlineScript: |
-        echo "=== UPDATING AZURE DEVOPS WORK ITEM ==="
-        echo "Work Item ID: ${{ parameters.WorkItemId }}"
+  - script: |
+      echo "=== UPDATING AZURE DEVOPS WORK ITEM ==="
+      echo "Work Item ID: ${{ parameters.WorkItemId }}"
+      
+      if [[ -n "${{ parameters.WorkItemId }}" ]]; then
+        # Set Azure DevOps organization and project using PAT token
+        export AZURE_DEVOPS_EXT_PAT="$(ADO_PAT)"
+        az devops configure --defaults organization=https://dev.azure.com/nayararushi0668 project="CODER TEST"
         
-        if [[ -n "${{ parameters.WorkItemId }}" ]]; then
-          # Set Azure DevOps organization and project
-          az devops configure --defaults organization=https://dev.azure.com/nayararushi0668 project="CODER TEST"
-          
-          # Update work item with progress
-          az boards work-item update \
-            --id ${{ parameters.WorkItemId }} \
-            --fields System.State=Closed \
-                     System.History="Automatically closed by self-healing pipeline. Applied patch: ${{ parameters.PatchInstruction }}. Build: $(Build.BuildId)" \
-            --output table
-          
-          echo "✅ Work item ${{ parameters.WorkItemId }} updated successfully"
-        else
-          echo "⚠️ No Work Item ID provided - skipping work item update"
-        fi
+        # Update work item with progress
+        az boards work-item update \
+          --id ${{ parameters.WorkItemId }} \
+          --fields System.State=Closed \
+                   System.History="Automatically closed by self-healing pipeline. Applied patch: ${{ parameters.PatchInstruction }}. Build: $(Build.BuildId)" \
+          --output table
+        
+        echo "✅ Work item ${{ parameters.WorkItemId }} updated successfully"
+      else
+        echo "⚠️ No Work Item ID provided - skipping work item update"
+      fi
     displayName: 'Update Azure DevOps Work Item'
     condition: and(succeeded(), ne('${{ parameters.WorkItemId }}', ''))
     env:
-      AZURE_DEVOPS_EXT_PAT: $(ADO_PAT)  # Azure DevOps Personal Access Token
+      ADO_PAT: $(ADO_PAT)  # Azure DevOps Personal Access Token
 
   - script: |
       echo "=== SELF-HEALING PIPELINE SUMMARY ==="
