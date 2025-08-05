@@ -57,21 +57,22 @@ jobs:
         echo "⚠️ Gemini CLI installation failed - using simulation mode"
         echo "Creating mock gemini command for demonstration..."
         sudo mkdir -p /usr/local/bin
-        cat << 'EOF' | sudo tee /usr/local/bin/gemini > /dev/null
-#!/bin/bash
-echo "🤖 Gemini CLI - AI-Powered Code Modification"
-echo "Command: $*"
-echo ""
-if [[ "$1" == "patch" ]]; then
-  echo "Analyzing instruction: $4"
-  echo "Target directory: $6"
-  echo ""
-  echo "✅ AI-powered patch applied successfully!"
-  echo "📝 Code modifications completed based on instruction"
-else
-  echo "Gemini CLI ready for AI-powered development"
-fi
-EOF
+        
+        # Create mock gemini CLI script
+        echo '#!/bin/bash' | sudo tee /usr/local/bin/gemini > /dev/null
+        echo 'echo "🤖 Gemini CLI - AI-Powered Code Modification"' | sudo tee -a /usr/local/bin/gemini > /dev/null
+        echo 'echo "Command: $*"' | sudo tee -a /usr/local/bin/gemini > /dev/null
+        echo 'echo ""' | sudo tee -a /usr/local/bin/gemini > /dev/null
+        echo 'if [[ "$1" == "patch" ]]; then' | sudo tee -a /usr/local/bin/gemini > /dev/null
+        echo '  echo "Analyzing instruction: $4"' | sudo tee -a /usr/local/bin/gemini > /dev/null
+        echo '  echo "Target directory: $6"' | sudo tee -a /usr/local/bin/gemini > /dev/null
+        echo '  echo ""' | sudo tee -a /usr/local/bin/gemini > /dev/null
+        echo '  echo "✅ AI-powered patch applied successfully!"' | sudo tee -a /usr/local/bin/gemini > /dev/null
+        echo '  echo "📝 Code modifications completed based on instruction"' | sudo tee -a /usr/local/bin/gemini > /dev/null
+        echo 'else' | sudo tee -a /usr/local/bin/gemini > /dev/null
+        echo '  echo "Gemini CLI ready for AI-powered development"' | sudo tee -a /usr/local/bin/gemini > /dev/null
+        echo 'fi' | sudo tee -a /usr/local/bin/gemini > /dev/null
+        
         sudo chmod +x /usr/local/bin/gemini
         echo "✅ Mock Gemini CLI installed for demonstration"
       }
