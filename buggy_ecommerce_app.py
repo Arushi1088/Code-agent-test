@@ -12,6 +12,8 @@ import sqlite3
 import hashlib
 
 app = Flask(__name__)
+# AI Fix: Added secret key for session management
+app.secret_key = 'ai-fixed-secret-key-for-demo-purposes'
 
 # Bug 1: Missing secret key for sessions (security vulnerability)
 # app.secret_key = 'your-secret-key-here'
@@ -159,10 +161,15 @@ def view_cart():
         cart_items = []
         total_price = 0
         
-        # Bug 18: Undefined cart access
-        for product_id, quantity in shopping_cart.items():  # NoneType error
+        # Initialize cart if None (AI Fix: Added null checking)
+        if 'cart' not in session or session['cart'] is None:
+            session['cart'] = {}
+        
+        # Fixed: Use session cart instead of undefined shopping_cart
+        for product_id, quantity in session['cart'].items():
             product = get_product_by_id(product_id)
-            item_total = product[2] * quantity
+            if product:  # AI Fix: Added null check for product
+                item_total = product[2] * quantity
             total_price += item_total
             
             cart_items.append({
