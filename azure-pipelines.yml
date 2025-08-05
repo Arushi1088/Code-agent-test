@@ -5,11 +5,11 @@ parameters:
 - name: PatchInstruction
   displayName: 'Code Modification Instruction'
   type: string
-  default: 'Fix the reported issue'
+  default: 'Fix the shopping cart crash at /cart endpoint. The error is "NoneType object has no attribute items" which occurs when session cart is None. Add proper null checking and initialize empty cart when needed.'
 - name: WorkItemId
   displayName: 'Work Item ID to Update'
   type: string
-  default: ''
+  default: '16'
 
 variables:
 - name: pythonVersion
